@@ -9,8 +9,11 @@ import (
 	"github.com/containers/image/transports/alltransports"
 	"github.com/containers/image/types"
 	store "github.com/containers/storage"
+	archieve "github.com/containers/storage/pkg/archive"
 	"github.com/sirupsen/logrus"
-	"github.com/davecgh/go-spew/spew"
+	"io"
+
+	//"github.com/davecgh/go-spew/spew"
 	"os"
 )
 var _defaultStore store.Store
@@ -59,9 +62,35 @@ func ImagePull(ImageName string) {
 	}
 
 	fmt.Printf("Pulled Image manifest %v \n", string(manifest))
+	// fetch image
 	images, _ := _defaultStore.Images()
 	image, _ := _defaultStore.Image(images[0].ID)
-	spew.Dump(image)
+	// create container
+	container, _ := _defaultStore.CreateContainer("", nil, image.ID, "", "", nil)
+
+	// mount container
+	mountPoint, _ := _defaultStore.Mount(container.ID,"")
+	fmt.Printf("Container mounted at %v \n", mountPoint)
+
+	// convert the mounted container image to tarball
+	exportedImageTar, _ := archieve.Tar(mountPoint, archieve.Uncompressed)
+	if err != nil {
+		logrus.WithError(err).Fatal("error creating tar")
+	}
+	fmt.Printf("exported tar: %v \n", exportedImageTar)
+	
+	outputFile, err := os.Create("/home/shubham/foo-tar")
+	if err != nil {
+		logrus.WithError(err).Fatal("unable to create tar output file")
+	}
+
+	_, err = io.Copy(outputFile, exportedImageTar)
+
+	if err != nil {
+		logrus.WithError(err).Fatal("unable to create tarball")
+	}
+
+
 }
 
 func defaultStore() store.Store {
