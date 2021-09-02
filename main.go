@@ -2,8 +2,8 @@ package main
 
 import (
 	"fmt"
-	"somewhat-emulate-skopeo/main/functions"
 	"github.com/containers/storage/pkg/reexec"
+	"somewhat-emulate-skopeo/main/functions"
 )
 
 func main() {
