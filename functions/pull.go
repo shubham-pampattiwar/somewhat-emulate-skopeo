@@ -12,8 +12,6 @@ import (
 	archieve "github.com/containers/storage/pkg/archive"
 	"github.com/sirupsen/logrus"
 	"io"
-	//imgspecv1 "github.com/opencontainers/image-spec/specs-go/v1"
-	//"github.com/davecgh/go-spew/spew"
 	"os"
 )
 
@@ -50,6 +48,8 @@ func ImagePull(ImageName string) {
 		logrus.WithError(err).Fatal("Could not parse local image reference")
 	}
 
+	fmt.Printf("\n Pulled Image Src refs: %+v \n", sourceImageRef)
+
 	manifest, err := copy.Image(
 		context.TODO(),
 		policyContext,
@@ -67,7 +67,6 @@ func ImagePull(ImageName string) {
 	// fetch image
 	images, _ := _defaultStore.Images()
 	image, _ := _defaultStore.Image(images[0].ID)
-	//storedConfig := manifest
 	// create container
 	container, _ := _defaultStore.CreateContainer("", nil, image.ID, "", "", nil)
 
@@ -81,8 +80,8 @@ func ImagePull(ImageName string) {
 		logrus.WithError(err).Fatal("error creating tar")
 	}
 	fmt.Printf("exported tar: %v \n", exportedImageTar)
-	homeDir, _ := os.UserHomeDir()
-	outputFile, err := os.Create( homeDir +"/foo-tar-new-7")
+	//homeDir, _ := os.UserHomeDir()
+	outputFile, err := os.Create( "/home/shubham/foo-tar-new-8")
 	if err != nil {
 		logrus.WithError(err).Fatal("unable to create tar output file")
 	}
@@ -93,10 +92,24 @@ func ImagePull(ImageName string) {
 		logrus.WithError(err).Fatal("unable to create tarball")
 	}
 
+
+	// Importing an image from tarball... Lets go
 	// convert the tarball to image and compare images
 	fmt.Printf("converting tarball to image from tar: %v \n", outputFile.Name())
+	//reader, err := os.Open(outputFile.Name())
+	//if err != nil {
+	//	logrus.WithError(err).Fatal("unable to open the tar ball file")
+	//}
+	//err = Untar("/home/shubham/foo-tar-new-8", "/home/shubham/test-untar/")
+
+	//err = archieve.Untar(reader, "/home/shubham/foo-tar-new-8", nil)
+	//
+	//if err != nil {
+	//	logrus.WithError(err).Fatal("unable to untar the tarball")
+	//}
 
 	src, err := alltransports.ParseImageName("tarball://" + outputFile.Name())
+	//src, err := tarball.Transport.ParseReference("/home/shubham/foo-tar-new-8")
 	if err != nil {
 		logrus.WithError(err).Fatal("tarball name parsing error")
 	}
@@ -122,6 +135,7 @@ func ImagePull(ImageName string) {
 		logrus.WithError(err).Fatal("policy 2 context creation error")
 	}
 
+	fmt.Printf("\n img to be created from tar src ref: %+v \n", src)
 	//defer pc.Destroy()
 	manifest2, err := copy.Image(context.TODO(), pc, dest, src, &copy.Options{
 		ReportWriter: os.Stdout,
@@ -135,8 +149,7 @@ func ImagePull(ImageName string) {
 	}
 
 	fmt.Printf("tar converted Image manifest %v \n", string(manifest2))
-
-
+	//_ = _defaultStore.Wipe()
 
 }
 
@@ -161,19 +174,47 @@ func defaultStore() store.Store {
 	return _defaultStore
 }
 
-//func InitDefaultStoreOptions() {
-//	options, err := store.DefaultStoreOptions(false, 0)
-//	if err != nil {
-//		logrus.WithError(err).Fatal("Could not create default image store options")
-//	}
-//	options.RunRoot = "/run/containers/storage"
-//	options.GraphRoot = "/var/lib/containers/storage"
-//	options.GraphDriverName = "overlay"
-//	_storeOptions = options
-//
-//}
+func InitDefaultStoreOptions() {
+	options, err := store.DefaultStoreOptions(false, 0)
+	if err != nil {
+		logrus.WithError(err).Fatal("Could not create default image store options")
+	}
+	//options.RunRoot = "/run/containers/storage"
+	//options.GraphRoot = "/var/lib/containers/storage"
+	//options.GraphDriverName = "overlay"
+	//_storeOptions = options
 
-//func imageFromTarball(tarball string) {
-//	src, err := tarball.
-//
-//}
+	if _defaultStore == nil {
+		gotStorage, err := store.GetStore(options)
+		if err != nil {
+			logrus.WithError(err).Fatal("Could not create image store")
+		}
+		_defaultStore = gotStorage
+	}
+
+}
+
+
+func Show() {
+	imagesNew, _ := _defaultStore.Images()
+	//spew.Dump(imagesNew)
+	for _, img := range imagesNew {
+		fmt.Printf("\n" + img.NamesHistory[0] + "\n")
+	}
+
+	if len(imagesNew) == 0 {
+		fmt.Printf("\n No images available to show \n")
+	}
+
+	ctrs, _ := _defaultStore.Containers()
+	for _, c := range ctrs {
+		fmt.Printf("\n" + c.ID + "\n")
+	}
+	if len(ctrs) == 0 {
+		fmt.Printf("\n No containers available to show \n")
+	}
+}
+
+func ClearStuff() {
+	_ = _defaultStore.Wipe()
+}
